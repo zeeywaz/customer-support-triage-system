@@ -6,7 +6,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 # Scope to read emails
-SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+SCOPES = ['https://www.googleapis.com/auth/gmail.modify']
 
 def authenticate_gmail():
     """Handles OAuth 2.0 authentication and returns the Gmail service."""
@@ -82,6 +82,47 @@ def fetch_unread_emails(service, max_results=5):
         })
         
     return parsed_emails
+
+def get_or_create_label(service, label_name):
+    """Finds a Gmail label by name, or creates it if it doesn't exist."""
+    formatted_name = f"[AI] {label_name}"
+    
+    # Fetch all existing labels
+    results = service.users().labels().list(userId='me').execute()
+    labels = results.get('labels', [])
+    
+    # Check if our label already exists
+    for label in labels:
+        if label['name'] == formatted_name:
+            return label['id']
+            
+    # If it doesn't exist, create it
+    label_object = {
+        'messageListVisibility': 'show',
+        'name': formatted_name,
+        'labelListVisibility': 'labelShow'
+    }
+    
+    print(f"Creating new Gmail label: {formatted_name}")
+    created_label = service.users().labels().create(userId='me', body=label_object).execute()
+    return created_label['id']
+
+
+def apply_label_and_mark_read(service, email_id, label_id):
+    """Applies the category label and removes the UNREAD status."""
+    body = {
+        'addLabelIds': [label_id],
+        'removeLabelIds': ['UNREAD']
+    }
+    service.users().messages().modify(userId='me', id=email_id, body=body).execute()
+
+
+
+
+
+
+
+
 
 if __name__ == '__main__':
     service = authenticate_gmail()
