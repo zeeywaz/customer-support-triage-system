@@ -1,0 +1,12 @@
+
+services:
+  api:
+    build: .
+    container_name: triage-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=sqlite:///./tickets.db
+    restart: always
